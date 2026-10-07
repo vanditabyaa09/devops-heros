@@ -1,0 +1,24 @@
+# emptyDir: scratch space shared by all containers in the Pod.
+# Created empty when the Pod starts, deleted when the Pod is deleted.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: emptydir-demo
+  namespace: session13
+spec:
+  containers:
+    - name: writer
+      image: busybox:1.36
+      command: ["sh", "-c", "while true; do date >> /shared/log.txt; sleep 5; done"]
+      volumeMounts:
+        - name: shared-data
+          mountPath: /shared
+    - name: reader
+      image: busybox:1.36
+      command: ["sh", "-c", "sleep 3600"]
+      volumeMounts:
+        - name: shared-data
+          mountPath: /shared
+  volumes:
+    - name: shared-data
+      emptyDir: {}

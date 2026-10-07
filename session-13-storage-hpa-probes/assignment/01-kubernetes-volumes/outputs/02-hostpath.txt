@@ -1,0 +1,17 @@
+$ kubectl apply -f manifests/02-hostpath-pod.yaml
+pod/hostpath-demo created
+
+$ kubectl exec hostpath-demo -n session13 -- sh -c 'echo "Vanditabyaa - 24bcs10505" > /data/hello.txt'
+
+$ minikube ssh -- cat /tmp/hostpath-data/hello.txt
+Vanditabyaa - 24bcs10505
+
+$ kubectl delete pod hostpath-demo -n session13
+pod "hostpath-demo" deleted from session13 namespace
+
+$ kubectl apply -f manifests/02-hostpath-pod.yaml
+pod/hostpath-demo created
+
+$ kubectl exec hostpath-demo -n session13 -- cat /data/hello.txt
+Vanditabyaa - 24bcs10505
+

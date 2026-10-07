@@ -1,0 +1,21 @@
+$ kubectl delete pod load-generator-1 load-generator-2 load-generator-3 -n production-webapp
+pod "load-generator-1" deleted from production-webapp namespace
+pod "load-generator-2" deleted from production-webapp namespace
+pod "load-generator-3" deleted from production-webapp namespace
+
+$ kubectl get hpa -n production-webapp
+NAME          REFERENCE            TARGETS       MINPODS   MAXPODS   REPLICAS   AGE
+web-app-hpa   Deployment/web-app   cpu: 1%/50%   2         5         2          11m
+
+$ kubectl get pods -n production-webapp
+NAME                      READY   STATUS    RESTARTS   AGE
+web-app-d45775485-p2grq   1/1     Running   0          11m
+web-app-d45775485-rlddz   1/1     Running   0          10m
+
+$ kubectl describe hpa web-app-hpa -n production-webapp | sed -n '/^Events:/,$p' | grep -E 'Events|----|Type|SuccessfulRescale'
+Events:
+  Type     Reason                        Age                From                       Message
+  ----     ------                        ----               ----                       -------
+  Normal   SuccessfulRescale             8m25s              horizontal-pod-autoscaler  New size: 3; reason: cpu resource utilization (percentage of request) above target
+  Normal   SuccessfulRescale             40s                horizontal-pod-autoscaler  New size: 2; reason: All metrics below target
+

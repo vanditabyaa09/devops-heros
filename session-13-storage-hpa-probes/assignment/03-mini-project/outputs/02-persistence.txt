@@ -1,0 +1,16 @@
+$ kubectl exec -n production-webapp web-app-d45775485-ddbq9 -- sh -c 'echo "Student: Vanditabyaa Dwivedi | Roll No: 24bcs10505" > /data/student.txt'
+
+$ kubectl exec -n production-webapp web-app-d45775485-ddbq9 -- cat /data/student.txt
+Student: Vanditabyaa Dwivedi | Roll No: 24bcs10505
+
+$ kubectl delete pod -n production-webapp web-app-d45775485-ddbq9
+pod "web-app-d45775485-ddbq9" deleted from production-webapp namespace
+
+$ kubectl get pods -n production-webapp
+NAME                      READY   STATUS    RESTARTS   AGE
+web-app-d45775485-p2grq   1/1     Running   0          108s
+web-app-d45775485-rlddz   1/1     Running   0          14s
+
+$ kubectl exec -n production-webapp web-app-d45775485-rlddz -- cat /data/student.txt
+Student: Vanditabyaa Dwivedi | Roll No: 24bcs10505
+

@@ -1,0 +1,13 @@
+# PersistentVolumeClaim: the developer's request for storage.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: student-pvc
+  namespace: session13
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Mi

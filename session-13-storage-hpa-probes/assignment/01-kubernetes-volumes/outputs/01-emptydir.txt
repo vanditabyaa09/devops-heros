@@ -1,0 +1,29 @@
+$ kubectl apply -f manifests/01-emptydir-pod.yaml
+pod/emptydir-demo created
+
+$ kubectl get pod emptydir-demo -n session13
+NAME            READY   STATUS    RESTARTS   AGE
+emptydir-demo   2/2     Running   0          13s
+
+$ kubectl exec emptydir-demo -n session13 -c reader -- cat /shared/log.txt
+Wed Oct  7 16:34:02 UTC 2026
+Wed Oct  7 16:34:07 UTC 2026
+Wed Oct  7 16:34:12 UTC 2026
+
+$ kubectl exec emptydir-demo -n session13 -c reader -- sh -c 'echo hello-from-reader > /shared/note.txt'
+
+$ kubectl exec emptydir-demo -n session13 -c writer -- ls -l /shared
+total 8
+-rw-r--r--    1 root     root            87 Oct  7 16:34 log.txt
+-rw-r--r--    1 root     root            18 Oct  7 16:34 note.txt
+
+$ kubectl delete pod emptydir-demo -n session13
+pod "emptydir-demo" deleted from session13 namespace
+
+$ kubectl apply -f manifests/01-emptydir-pod.yaml
+pod/emptydir-demo created
+
+$ kubectl exec emptydir-demo -n session13 -c reader -- ls -l /shared
+total 4
+-rw-r--r--    1 root     root            29 Oct  7 16:34 log.txt
+

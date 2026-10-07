@@ -1,0 +1,25 @@
+$ kubectl patch deployment web-app -n production-webapp --type=json -p='[{"op":"replace","path":"/spec/template/spec/containers/0/readinessProbe/httpGet/path","value":"/does-not-exist"}]'
+deployment.apps/web-app patched
+
+$ kubectl get pods -n production-webapp
+NAME                       READY   STATUS    RESTARTS   AGE
+web-app-5945bfc776-5g96n   0/1     Running   0          45s
+web-app-5945bfc776-9pvbp   0/1     Running   0          45s
+
+$ kubectl get endpointslices -n production-webapp -o custom-columns=NAME:.metadata.name,READY-ENDPOINTS:.endpoints[*].conditions.ready,ADDRESSES:.endpoints[*].addresses[0]
+NAME                READY-ENDPOINTS   ADDRESSES
+web-service-gk8hf   false,false       10.244.0.37,10.244.0.38
+
+$ kubectl describe pod web-app-5945bfc776-5g96n -n production-webapp | sed -n '/^Events:/,$p' | grep -E 'Events|Type|Unhealthy' | head -4
+Events:
+  Type     Reason     Age               From               Message
+  Warning  Unhealthy  1s (x8 over 36s)  kubelet            spec.containers{nginx}: Readiness probe failed: HTTP probe failed with statuscode: 404
+
+$ kubectl apply -f deployment.yaml
+deployment.apps/web-app configured
+
+$ kubectl get pods -n production-webapp
+NAME                      READY   STATUS    RESTARTS   AGE
+web-app-d45775485-4rv5p   1/1     Running   0          9s
+web-app-d45775485-9fvfg   1/1     Running   0          9s
+

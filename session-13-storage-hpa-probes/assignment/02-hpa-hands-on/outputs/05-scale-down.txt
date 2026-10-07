@@ -1,0 +1,23 @@
+$ kubectl delete -f load-generator.yaml
+deployment.apps "load-generator" deleted from session13 namespace
+
+$ kubectl get hpa -n session13
+NAME       REFERENCE             TARGETS       MINPODS   MAXPODS   REPLICAS   AGE
+hpa-demo   Deployment/hpa-demo   cpu: 0%/50%   1         5         1          13m
+
+$ kubectl get pods -n session13 -l app=hpa-demo
+NAME                        READY   STATUS    RESTARTS   AGE
+hpa-demo-5d6676989b-csgd2   1/1     Running   0          10m
+
+$ kubectl top pods -n session13 -l app=hpa-demo
+NAME                        CPU(cores)   MEMORY(bytes)   
+hpa-demo-5d6676989b-csgd2   0m           7Mi             
+
+$ kubectl describe hpa hpa-demo -n session13 | sed -n '/^Events:/,$p' | grep -E 'Events|----|Type|SuccessfulRescale'
+Events:
+  Type     Reason                        Age                From                       Message
+  ----     ------                        ----               ----                       -------
+  Normal   SuccessfulRescale             10m                horizontal-pod-autoscaler  New size: 2; reason: cpu resource utilization (percentage of request) above target
+  Normal   SuccessfulRescale             8m24s              horizontal-pod-autoscaler  New size: 3; reason: cpu resource utilization (percentage of request) above target
+  Normal   SuccessfulRescale             38s                horizontal-pod-autoscaler  New size: 1; reason: All metrics below target
+

@@ -1,0 +1,48 @@
+$ kubectl apply -f manifests/03-pv.yaml
+persistentvolume/student-pv created
+
+$ kubectl get pv student-pv
+NAME         CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM   STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE
+student-pv   1Gi        RWO            Retain           Available           manual         <unset>                          0s
+
+$ kubectl apply -f manifests/04-pvc.yaml
+persistentvolumeclaim/student-pvc created
+
+$ kubectl get pv student-pv
+NAME         CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                   STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE
+student-pv   1Gi        RWO            Retain           Bound    session13/student-pvc   manual         <unset>                          3s
+
+$ kubectl get pvc student-pvc -n session13
+NAME          STATUS   VOLUME       CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+student-pvc   Bound    student-pv   1Gi        RWO            manual         <unset>                 3s
+
+$ kubectl apply -f manifests/05-pvc-pod.yaml
+pod/storage-demo created
+
+$ kubectl exec storage-demo -n session13 -- sh -c 'echo "PV data written by Vanditabyaa (24bcs10505)" > /data/student.txt'
+
+$ kubectl delete pod storage-demo -n session13
+pod "storage-demo" deleted from session13 namespace
+
+$ kubectl apply -f manifests/05-pvc-pod.yaml
+pod/storage-demo created
+
+$ kubectl exec storage-demo -n session13 -- cat /data/student.txt
+PV data written by Vanditabyaa (24bcs10505)
+
+$ kubectl describe pvc student-pvc -n session13 | head -14
+Name:          student-pvc
+Namespace:     session13
+StorageClass:  manual
+Status:        Bound
+Volume:        student-pv
+Labels:        <none>
+Annotations:   pv.kubernetes.io/bind-completed: yes
+               pv.kubernetes.io/bound-by-controller: yes
+Finalizers:    [kubernetes.io/pvc-protection]
+Capacity:      1Gi
+Access Modes:  RWO
+VolumeMode:    Filesystem
+Used By:       storage-demo
+Conditions:
+

@@ -1,0 +1,31 @@
+$ kubectl apply -f deployment.yaml -f service.yaml
+deployment.apps/hpa-demo created
+service/hpa-demo-service created
+
+$ kubectl get deploy,pods,svc -n session13 -l app=hpa-demo
+NAME                            READY   STATUS    RESTARTS   AGE
+pod/hpa-demo-5d6676989b-l96hs   1/1     Running   0          1s
+
+$ kubectl get svc hpa-demo-service -n session13
+NAME               TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)   AGE
+hpa-demo-service   ClusterIP   10.100.85.139   <none>        80/TCP    1s
+
+$ kubectl apply -f hpa.yml
+horizontalpodautoscaler.autoscaling/hpa-demo created
+
+$ kubectl get hpa -n session13
+NAME       REFERENCE             TARGETS       MINPODS   MAXPODS   REPLICAS   AGE
+hpa-demo   Deployment/hpa-demo   cpu: 0%/50%   1         5         1          91s
+
+$ kubectl top pods -n session13 -l app=hpa-demo
+NAME                        CPU(cores)   MEMORY(bytes)   
+hpa-demo-5d6676989b-l96hs   0m           6Mi             
+
+$ kubectl top nodes
+NAME       CPU(cores)   CPU(%)   MEMORY(bytes)   MEMORY(%)   
+minikube   199m         2%       1658Mi          20%         
+
+$ kubectl get deploy hpa-demo -n session13
+NAME       READY   UP-TO-DATE   AVAILABLE   AGE
+hpa-demo   1/1     1            1           103s
+

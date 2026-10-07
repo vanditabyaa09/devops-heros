@@ -1,0 +1,51 @@
+$ kubectl apply -f load-generator.yaml
+deployment.apps/load-generator created
+
+$ kubectl get pods -n session13 -l app=load-generator
+NAME                              READY   STATUS    RESTARTS   AGE
+load-generator-5bc8f9cd58-7ppt2   1/1     Running   0          0s
+
+$ kubectl top pods -n session13
+NAME                              CPU(cores)   MEMORY(bytes)   
+dynamic-demo                      0m           6Mi             
+emptydir-demo                     1m           0Mi             
+hostpath-demo                     0m           6Mi             
+hpa-demo-5d6676989b-l96hs         43m          8Mi             
+load-generator-5bc8f9cd58-7ppt2   816m         4Mi             
+storage-demo                      0m           6Mi             
+
+$ kubectl get hpa -n session13
+NAME       REFERENCE             TARGETS        MINPODS   MAXPODS   REPLICAS   AGE
+hpa-demo   Deployment/hpa-demo   cpu: 43%/50%   1         5         1          2m45s
+
+$ kubectl scale deployment load-generator -n session13 --replicas=3
+deployment.apps/load-generator scaled
+
+$ kubectl get hpa -n session13
+NAME       REFERENCE             TARGETS        MINPODS   MAXPODS   REPLICAS   AGE
+hpa-demo   Deployment/hpa-demo   cpu: 89%/50%   1         5         2          4m6s
+
+$ kubectl get pods -n session13 -l app=hpa-demo
+NAME                        READY   STATUS    RESTARTS   AGE
+hpa-demo-5d6676989b-csgd2   1/1     Running   0          36s
+hpa-demo-5d6676989b-l96hs   1/1     Running   0          4m7s
+
+$ kubectl top pods -n session13 -l app=hpa-demo
+NAME                        CPU(cores)   MEMORY(bytes)   
+hpa-demo-5d6676989b-l96hs   89m          8Mi             
+
+$ kubectl get hpa -n session13
+NAME       REFERENCE             TARGETS        MINPODS   MAXPODS   REPLICAS   AGE
+hpa-demo   Deployment/hpa-demo   cpu: 60%/50%   1         5         2          5m36s
+
+$ kubectl get pods -n session13 -l app=hpa-demo -o wide
+NAME                        READY   STATUS    RESTARTS   AGE     IP            NODE       NOMINATED NODE   READINESS GATES
+hpa-demo-5d6676989b-csgd2   1/1     Running   0          2m6s    10.244.0.24   minikube   <none>           <none>
+hpa-demo-5d6676989b-h9899   1/1     Running   0          6s      10.244.0.25   minikube   <none>           <none>
+hpa-demo-5d6676989b-l96hs   1/1     Running   0          5m37s   10.244.0.20   minikube   <none>           <none>
+
+$ kubectl top pods -n session13 -l app=hpa-demo
+NAME                        CPU(cores)   MEMORY(bytes)   
+hpa-demo-5d6676989b-csgd2   61m          8Mi             
+hpa-demo-5d6676989b-l96hs   60m          8Mi             
+

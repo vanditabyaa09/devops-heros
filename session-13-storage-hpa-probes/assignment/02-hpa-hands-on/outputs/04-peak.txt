@@ -1,0 +1,64 @@
+$ kubectl scale deployment load-generator -n session13 --replicas=6
+deployment.apps/load-generator scaled
+
+$ kubectl get hpa -n session13
+NAME       REFERENCE             TARGETS        MINPODS   MAXPODS   REPLICAS   AGE
+hpa-demo   Deployment/hpa-demo   cpu: 44%/50%   1         5         3          10m
+
+$ kubectl get pods -n session13 -l app=hpa-demo
+NAME                        READY   STATUS    RESTARTS   AGE
+hpa-demo-5d6676989b-csgd2   1/1     Running   0          7m1s
+hpa-demo-5d6676989b-h9899   1/1     Running   0          5m1s
+hpa-demo-5d6676989b-l96hs   1/1     Running   0          10m
+
+$ kubectl top pods -n session13 -l app=hpa-demo
+NAME                        CPU(cores)   MEMORY(bytes)   
+hpa-demo-5d6676989b-csgd2   45m          8Mi             
+hpa-demo-5d6676989b-h9899   44m          7Mi             
+hpa-demo-5d6676989b-l96hs   43m          7Mi             
+
+$ kubectl get deploy hpa-demo -n session13
+NAME       READY   UP-TO-DATE   AVAILABLE   AGE
+hpa-demo   3/3     3            3           10m
+
+$ kubectl describe hpa hpa-demo -n session13
+Name:                                                  hpa-demo
+Namespace:                                             session13
+Labels:                                                <none>
+Annotations:                                           <none>
+CreationTimestamp:                                     Wed, 07 Oct 2026 22:05:37 +0530
+Reference:                                             Deployment/hpa-demo
+Metrics:                                               ( current / target )
+  resource cpu on pods  (as a percentage of request):  44% (44m) / 50%
+Min replicas:                                          1
+Max replicas:                                          5
+Behavior:
+  Scale Up:
+    Stabilization Window: 0 seconds
+    Select Policy: Max
+    Policies:
+      - Type: Pods     Value: 4    Period: 15 seconds
+      - Type: Percent  Value: 100  Period: 15 seconds
+  Scale Down:
+    Stabilization Window: 60 seconds
+    Select Policy: Max
+    Policies:
+      - Type: Percent  Value: 100  Period: 15 seconds
+Deployment pods:       3 current / 3 desired
+Conditions:
+  Type            Status  Reason              Message
+  ----            ------  ------              -------
+  AbleToScale     True    ReadyForNewScale    recommended size matches current size
+  ScalingActive   True    ValidMetricFound    the HPA was able to successfully calculate a replica count from cpu resource utilization (percentage of request)
+  ScalingLimited  False   DesiredWithinRange  the desired count is within the acceptable range
+  ScaledToZero    False   NotScaledToZero     the HPA controller did not scale the workload to zero
+Events:
+  Type     Reason                        Age                  From                       Message
+  ----     ------                        ----                 ----                       -------
+  Warning  FailedGetResourceMetric       10m (x2 over 10m)    horizontal-pod-autoscaler  failed to get cpu utilization: unable to get metrics for resource cpu: no metrics returned from resource metrics API
+  Warning  FailedComputeMetricsReplicas  10m (x2 over 10m)    horizontal-pod-autoscaler  invalid metrics (1 invalid out of 1), first error is: failed to get cpu resource metric value: failed to get cpu utilization: unable to get metrics for resource cpu: no metrics returned from resource metrics API
+  Warning  FailedGetResourceMetric       9m16s (x4 over 10m)  horizontal-pod-autoscaler  failed to get cpu utilization: did not receive metrics for targeted pods (pods might be unready)
+  Warning  FailedComputeMetricsReplicas  9m16s (x4 over 10m)  horizontal-pod-autoscaler  invalid metrics (1 invalid out of 1), first error is: failed to get cpu resource metric value: failed to get cpu utilization: did not receive metrics for targeted pods (pods might be unready)
+  Normal   SuccessfulRescale             7m1s                 horizontal-pod-autoscaler  New size: 2; reason: cpu resource utilization (percentage of request) above target
+  Normal   SuccessfulRescale             5m1s                 horizontal-pod-autoscaler  New size: 3; reason: cpu resource utilization (percentage of request) above target
+

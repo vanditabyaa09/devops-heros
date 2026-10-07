@@ -1,0 +1,16 @@
+# Static PersistentVolume created by the admin.
+# storageClassName "manual" stops the default StorageClass from provisioning
+# a new volume, so the PVC below binds to THIS PV.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: student-pv
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: /tmp/student-data

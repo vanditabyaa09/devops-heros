@@ -1,0 +1,44 @@
+$ kubectl get storageclass
+NAME                 PROVISIONER                RECLAIMPOLICY   VOLUMEBINDINGMODE   ALLOWVOLUMEEXPANSION   AGE
+standard (default)   k8s.io/minikube-hostpath   Delete          Immediate           false                  16d
+
+$ kubectl describe storageclass standard | head -12
+Name:            standard
+IsDefaultClass:  Yes
+Annotations:     kubectl.kubernetes.io/last-applied-configuration={"apiVersion":"storage.k8s.io/v1","kind":"StorageClass","metadata":{"annotations":{"storageclass.kubernetes.io/is-default-class":"true"},"labels":{"addonmanager.kubernetes.io/mode":"EnsureExists"},"name":"standard"},"provisioner":"k8s.io/minikube-hostpath"}
+,storageclass.kubernetes.io/is-default-class=true
+Provisioner:           k8s.io/minikube-hostpath
+Parameters:            <none>
+AllowVolumeExpansion:  <unset>
+MountOptions:          <none>
+ReclaimPolicy:         Delete
+VolumeBindingMode:     Immediate
+Events:                <none>
+
+$ kubectl get pv | grep -E 'NAME|session13'
+NAME         CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                   STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE
+student-pv   1Gi        RWO            Retain           Bound    session13/student-pvc   manual         <unset>                          13s
+
+$ kubectl apply -f manifests/06-dynamic-pvc.yaml
+persistentvolumeclaim/dynamic-pvc created
+
+$ kubectl get pvc dynamic-pvc -n session13
+NAME          STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+dynamic-pvc   Bound    pvc-f4684daa-3af5-4292-a7f1-d43e1adf33a6   500Mi      RWO            standard       <unset>                 4s
+
+$ kubectl get pv | grep -E 'NAME|session13'
+NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                   STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE
+pvc-f4684daa-3af5-4292-a7f1-d43e1adf33a6   500Mi      RWO            Delete           Bound    session13/dynamic-pvc   standard       <unset>                          4s
+student-pv                                 1Gi        RWO            Retain           Bound    session13/student-pvc   manual         <unset>                          17s
+
+$ kubectl apply -f manifests/07-dynamic-pod.yaml
+pod/dynamic-demo created
+
+$ kubectl exec dynamic-demo -n session13 -- sh -c 'echo dynamic-ok > /data/check.txt && cat /data/check.txt'
+dynamic-ok
+
+$ kubectl get pvc -n session13
+NAME          STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+dynamic-pvc   Bound    pvc-f4684daa-3af5-4292-a7f1-d43e1adf33a6   500Mi      RWO            standard       <unset>                 5s
+student-pvc   Bound    student-pv                                 1Gi        RWO            manual         <unset>                 18s
+

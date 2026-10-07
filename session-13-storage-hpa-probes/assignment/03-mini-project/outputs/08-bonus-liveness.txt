@@ -1,0 +1,33 @@
+$ kubectl patch deployment web-app -n production-webapp --type=json -p='[{"op":"replace","path":"/spec/template/spec/containers/0/livenessProbe/httpGet/path","value":"/crash"}]'
+deployment.apps/web-app patched
+
+$ kubectl get pods -n production-webapp
+NAME                      READY   STATUS    RESTARTS      AGE
+web-app-85d86b65d-lrgp4   1/1     Running   1 (15s ago)   30s
+web-app-85d86b65d-x8tqv   1/1     Running   1 (15s ago)   30s
+
+$ kubectl get pods -n production-webapp
+NAME                      READY   STATUS             RESTARTS      AGE
+web-app-85d86b65d-lrgp4   0/1     CrashLoopBackOff   3 (15s ago)   75s
+web-app-85d86b65d-x8tqv   0/1     CrashLoopBackOff   3 (15s ago)   75s
+
+$ kubectl describe pod web-app-85d86b65d-lrgp4 -n production-webapp | sed -n '/^Events:/,$p' | grep -E 'Events|Type|Unhealthy|Killing'
+Events:
+  Type     Reason     Age                 From               Message
+  Warning  Unhealthy  15s (x12 over 70s)  kubelet            spec.containers{nginx}: Liveness probe failed: HTTP probe failed with statuscode: 404
+  Normal   Killing    15s (x4 over 60s)   kubelet            spec.containers{nginx}: Container nginx failed liveness probe, will be restarted
+
+$ kubectl apply -f deployment.yaml
+deployment.apps/web-app configured
+
+$ kubectl get pods,hpa -n production-webapp
+NAME                          READY   STATUS    RESTARTS   AGE
+pod/web-app-d45775485-7dxm2   1/1     Running   0          9s
+pod/web-app-d45775485-vr8qn   1/1     Running   0          9s
+
+NAME                                              REFERENCE            TARGETS              MINPODS   MAXPODS   REPLICAS   AGE
+horizontalpodautoscaler.autoscaling/web-app-hpa   Deployment/web-app   cpu: <unknown>/50%   2         5         2          14m
+
+$ kubectl exec -n production-webapp web-app-d45775485-7dxm2 -- cat /data/student.txt
+Student: Vanditabyaa Dwivedi | Roll No: 24bcs10505
+
