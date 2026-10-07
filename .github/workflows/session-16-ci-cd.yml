@@ -1,0 +1,141 @@
+name: Session 16 CI/CD Pipeline
+
+# GitHub only reads workflows from the repo root, but the project lives in
+# session-16-cicd/. The paths filter runs this only when that folder changes,
+# and defaults.run.working-directory makes every "run" step start inside it.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "session-16-cicd/**"
+      - ".github/workflows/session-16-ci-cd.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "session-16-cicd/**"
+      - ".github/workflows/session-16-ci-cd.yml"
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: session-16-cicd
+
+jobs:
+  # ---------------- CI ----------------
+  test:
+    name: Test Application
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Display Python version
+        run: python --version
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run tests
+        run: pytest -v
+
+  build:
+    name: Build Application
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v6
+
+      - name: Build application
+        run: |
+          chmod +x build.sh
+          ./build.sh
+
+      - name: Show build output
+        run: cat build/build-info.txt
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: calculator-build
+          path: session-16-cicd/build/
+
+  security-check:
+    name: Security Check
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v6
+
+      - name: Check for sensitive files
+        run: |
+          echo "Checking repository for common sensitive files..."
+          if find . -type f \( -name ".env" -o -name "*.pem" -o -name "*.key" \) | grep -q .; then
+            echo "Potential sensitive file found."
+            exit 1
+          else
+            echo "No common sensitive files found."
+          fi
+
+      - name: Check demo secret is available
+        env:
+          DEMO_SECRET: ${{ secrets.DEMO_SECRET }}
+        run: |
+          if [ -n "$DEMO_SECRET" ]; then
+            echo "DEMO_SECRET is configured (value stays hidden in logs)."
+          else
+            echo "DEMO_SECRET is not configured. Add it under Settings > Secrets and variables > Actions."
+          fi
+
+  # ---------------- CD ----------------
+  deliver:
+    name: Deliver Docker Image
+    needs: [build, security-check]
+    # Only deliver from main, never from pull requests
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v6
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate image name and tags
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ github.repository }}/session16-calculator
+          tags: |
+            type=sha
+            type=raw,value=latest
+
+      - name: Build and push image
+        uses: docker/build-push-action@v7
+        with:
+          context: session-16-cicd
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Deployment summary
+        run: |
+          echo "Image published:"
+          echo "${{ steps.meta.outputs.tags }}"
